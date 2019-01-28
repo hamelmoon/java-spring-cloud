@@ -1,7 +1,9 @@
 package io.opentracing.contrib.spring.cloud.newspan;
 
 import io.opentracing.Scope;
+import io.opentracing.Span;
 import io.opentracing.Tracer;
+import io.opentracing.contrib.spring.cloud.ExtensionTags;
 import io.opentracing.contrib.spring.cloud.SpanUtils;
 import io.opentracing.tag.Tags;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -31,12 +33,18 @@ public class ContinueSpanAspect {
       return pjp.proceed();
     }
 
-    // operation name is method name
-    tracer.buildSpan(pjp.getSignature().getName())
+    Span span = tracer.buildSpan(pjp.getSignature().getName())
         .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME)
         .withTag(CLASS_KEY, pjp.getTarget().getClass().getSimpleName())
         .withTag(METHOD_KEY, pjp.getSignature().getName())
         .start();
-    return pjp.proceed();
+    try (Scope scope = this.tracer.scopeManager().activate(span, false)) {
+      return pjp.proceed();
+    } catch (Exception ex) {
+      SpanUtils.captureException(span, ex);
+      throw ex;
+    } finally {
+      span.finish();
+    }
   }
 }
