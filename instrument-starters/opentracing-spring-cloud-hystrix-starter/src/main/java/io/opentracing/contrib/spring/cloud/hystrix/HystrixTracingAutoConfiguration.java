@@ -40,4 +40,11 @@ public class HystrixTracingAutoConfiguration {
   TracingConcurrencyStrategy hystrixTracingConcurrencyStrategy(Tracer tracer) {
     return TracingConcurrencyStrategy.register(tracer);
   }
+
+  @Bean
+  @ConditionalOnClass(HystrixCommand.class)
+  @ConditionalOnProperty(name = "opentracing.spring.cloud.hystrix.enabled", matchIfMissing = true)
+  HystrixCommandAspect jaegerHystrixCommandAspect(Tracer tracer) {
+    return new HystrixCommandAspect(tracer);
+  }
 }
